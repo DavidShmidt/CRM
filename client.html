@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Отчет клиента — Шмидт</title>
+    <link rel="stylesheet" href="client.css" />
+  </head>
+  <body>
+    <main class="client-report">
+      <header class="report-hero">
+        <div>
+          <p class="eyebrow">Шмидт · клиентский отчет</p>
+          <h1>Волховстроя, 20, кв. 74</h1>
+          <p>Квартира · Евгений Владимирович · обновлено 27.05.2026</p>
+        </div>
+        <button class="print-button" type="button" onclick="window.print()">PDF / печать</button>
+      </header>
+
+      <section class="summary-grid">
+        <article>
+          <span>Работы</span>
+          <strong>205 358 ₽</strong>
+        </article>
+        <article>
+          <span>Материалы</span>
+          <strong>48 886 ₽</strong>
+        </article>
+        <article>
+          <span>Оплачено</span>
+          <strong>250 000 ₽</strong>
+        </article>
+        <article class="attention">
+          <span>Остаток</span>
+          <strong>-17 244 ₽</strong>
+        </article>
+      </section>
+
+      <section class="report-section">
+        <div class="section-head">
+          <h2>Прогресс по помещениям</h2>
+          <span>5 разделов</span>
+        </div>
+        <div class="rooms" id="rooms"></div>
+      </section>
+
+      <section class="report-section">
+        <div class="section-head">
+          <h2>Как считается сумма</h2>
+          <span>пояснение для проверки</span>
+        </div>
+        <div class="formula-notes">
+          <article>
+            <h3>Работы</h3>
+            <p>Каждая позиция считается по правилу: цена за единицу умножается на количество и площадь или метраж. Итог помещения складывается из всех позиций этого помещения.</p>
+          </article>
+          <article>
+            <h3>Материалы</h3>
+            <p>Материалы считаются отдельно по чекам. В общую сумму материалов попадают все чеки, указанные в разделе “Материалы и чеки”.</p>
+          </article>
+          <article>
+            <h3>Остаток</h3>
+            <p>Остаток считается как оплаченная сумма минус работы, материалы и отдельные работы. Отрицательное значение означает, что расходы превышают полученную оплату.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-section">
+        <div class="section-head">
+          <h2>Выполненные работы</h2>
+          <span>по этапам</span>
+        </div>
+        <div class="works" id="works"></div>
+      </section>
+
+      <section class="report-section">
+        <div class="section-head">
+          <h2>Материалы и чеки</h2>
+          <span>22 чека</span>
+        </div>
+        <div class="checks" id="checks"></div>
+      </section>
+    </main>
+
+    <script src="client.js"></script>
+  </body>
+</html>

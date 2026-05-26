@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRM ремонта</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">CRM</div>
+          <div>
+            <p class="eyebrow">Ремонтные объекты</p>
+            <h1>Шмидт</h1>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Разделы CRM">
+          <button class="nav-item active" data-view="objects" type="button">Объекты</button>
+          <button class="nav-item object-nav" data-view="overview" type="button">Обзор</button>
+          <button class="nav-item object-nav" data-view="rooms" type="button">Помещения</button>
+          <button class="nav-item object-nav" data-view="works" type="button">Работы</button>
+          <button class="nav-item object-nav" data-view="checks" type="button">Чеки</button>
+        </nav>
+
+        <div class="source-box">
+          <span>Источник</span>
+          <a href="https://docs.google.com/spreadsheets/d/1zVKZ6IrFY5RlruPvKlTjibdDbaqPr4kVgYNokngrAjU/edit" target="_blank" rel="noreferrer">Google-таблица</a>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="viewEyebrow">Панель управления объектами</p>
+            <h2 id="viewTitle">Обзор</h2>
+          </div>
+          <div class="toolbar">
+            <button class="ghost" id="syncGoogle" type="button">Обновить из Google</button>
+            <span class="sync-status" id="syncStatus">Снимок данных</span>
+            <label class="search">
+              <span>Поиск</span>
+              <input id="searchInput" type="search" placeholder="Клиент, адрес, работа, дата" />
+            </label>
+            <select id="statusFilter" aria-label="Фильтр статуса">
+              <option value="all">Все статусы</option>
+            </select>
+            <select id="typeFilter" aria-label="Фильтр типа заказа">
+              <option value="all">Все типы</option>
+            </select>
+          </div>
+        </header>
+
+        <section class="view active" id="objects">
+          <div class="metric-grid object-metrics">
+            <article class="metric">
+              <span>Всего объектов</span>
+              <strong id="objectsTotal">0</strong>
+              <small>Из таблицы “Объекты”</small>
+            </article>
+            <article class="metric">
+              <span>В работе</span>
+              <strong id="activeObjects">0</strong>
+              <small>Нужно держать в фокусе</small>
+            </article>
+            <article class="metric">
+              <span>Не начато</span>
+              <strong id="newObjects">0</strong>
+              <small>Будущие заказы</small>
+            </article>
+            <article class="metric highlight">
+              <span>Со сметой</span>
+              <strong id="estimateObjects">0</strong>
+              <small>Есть ссылка на расчет</small>
+            </article>
+          </div>
+
+          <div class="objects-layout">
+            <section class="objects-board" id="objectsBoard"></section>
+            <aside class="client-panel" id="clientPanel"></aside>
+          </div>
+        </section>
+
+        <section class="view" id="overview">
+          <div class="metric-grid">
+            <article class="metric">
+              <span>Работы</span>
+              <strong id="laborTotal">0 ₽</strong>
+              <small>Сумма по всем помещениям</small>
+            </article>
+            <article class="metric">
+              <span>Материалы</span>
+              <strong id="materialsTotal">0 ₽</strong>
+              <small>По чекам из таблицы</small>
+            </article>
+            <article class="metric">
+              <span>Получено</span>
+              <strong id="receivedTotal">0 ₽</strong>
+              <small>Оплаты от клиента</small>
+            </article>
+            <article class="metric highlight">
+              <span>Остаток</span>
+              <strong id="balanceTotal">0 ₽</strong>
+              <small>Получено минус работы и материалы</small>
+            </article>
+          </div>
+
+          <div class="overview-grid">
+            <section class="panel wide">
+              <div class="panel-head">
+                <h3>Финансы объекта</h3>
+                <span id="paymentStatus">Статус</span>
+              </div>
+              <div class="progress-wrap">
+                <div class="progress-labels">
+                  <span>Затраты</span>
+                  <strong id="costProgressLabel">0%</strong>
+                </div>
+                <div class="progress"><div id="costProgress"></div></div>
+              </div>
+              <div class="money-breakdown" id="moneyBreakdown"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Помещения по сумме</h3>
+              </div>
+              <div class="room-bars" id="roomBars"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="rooms">
+          <div class="room-grid" id="roomCards"></div>
+        </section>
+
+        <section class="view" id="works">
+          <div class="works-board" id="worksBoard"></div>
+        </section>
+
+        <section class="view" id="checks">
+          <div class="checks-layout">
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Расходы по чекам</h3>
+                <span id="checksCount">0 чеков</span>
+              </div>
+              <div class="receipt-list" id="checksList"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>Календарь затрат</h3>
+              </div>
+              <div class="timeline" id="checksTimeline"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
