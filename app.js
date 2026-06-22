@@ -437,6 +437,146 @@ function contactMenu(object) {
   </details>`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function clientReportUrl(object) {
+  const url = new URL("client.html", window.location.href);
+  url.searchParams.set("object", object.id);
+  return url.href;
+}
+
+function reportFileName(object) {
+  const cleanAddress = String(object.address || "client-report")
+    .replace(/[\\/:*?"<>|]+/g, "")
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+  return `client-report-${cleanAddress || object.id}.html`;
+}
+
+function standaloneReportStyles() {
+  return `:root{--ink:#17211d;--muted:#66736d;--line:#d9e1dc;--soft:#f5f7f2;--accent:#146c5f;--accent-2:#cf6f3e}*{box-sizing:border-box}body{margin:0;background:#eef3f0;color:var(--ink);font-family:Inter,"Segoe UI",Arial,sans-serif}.client-report{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:28px 0 48px}.report-hero,.report-section,.summary-grid article{background:#fff;border:1px solid var(--line);border-radius:8px}.report-hero{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:28px;margin-bottom:16px}.eyebrow{margin:0 0 8px;color:var(--muted);font-size:12px;letter-spacing:0;text-transform:uppercase}h1,h2,h3,p{margin:0;letter-spacing:0}h1{font-size:34px}.report-hero p:last-child{margin-top:10px;color:var(--muted)}.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.summary-grid article{padding:18px;display:grid;gap:8px}.summary-grid span,.section-head span,.room-card small,.work-row span:not(:first-child),.check-row span{color:var(--muted)}.summary-grid strong{font-size:26px}.summary-grid .attention{background:#fff8ed;border-color:#e5ba82}.report-section{padding:22px;margin-bottom:16px}.section-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}.rooms,.formula-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.formula-notes article,.room-card{border:1px solid var(--line);border-radius:8px;padding:14px;background:#fbfcfb}.formula-notes h3{margin-bottom:8px}.formula-notes p{color:var(--muted);line-height:1.5}.room-card{display:grid;gap:10px;background:#fff}.room-metrics{display:grid;grid-template-columns:1fr auto;gap:6px 10px;color:var(--muted);font-size:13px}.room-metrics strong{color:var(--ink);font-size:13px}.room-card strong{font-size:20px}.bar{height:8px;background:#e8eee9;border-radius:999px;overflow:hidden}.bar div{height:100%;background:var(--accent)}.works{display:grid;gap:14px}.work-room{border:1px solid var(--line);border-radius:8px;overflow:hidden}.work-room h3{display:flex;justify-content:space-between;gap:12px;padding:14px;background:var(--soft)}.stage{padding:12px 14px;border-top:1px solid var(--line)}.stage h4{margin:0 0 10px}.work-row,.check-row{display:grid;grid-template-columns:minmax(0,1fr) 82px 64px 82px 98px;gap:12px;padding:8px 0;border-top:1px solid #edf1ee;align-items:center}.work-row span:first-child{min-width:0}.work-row span:not(:first-child),.work-row strong{text-align:right}.work-head{color:var(--muted);font-size:13px}.checks{columns:2;column-gap:20px}.check-row{break-inside:avoid}@media(max-width:820px){.report-hero,.section-head{align-items:stretch;flex-direction:column}.summary-grid,.rooms,.formula-notes{grid-template-columns:1fr}.checks{columns:1}.work-row{grid-template-columns:1fr 1fr}.work-head{display:none}}@media print{body{background:#fff}.client-report{width:100%;padding:0}.report-hero,.report-section,.summary-grid article{box-shadow:none;break-inside:avoid}}`;
+}
+
+function buildStandaloneClientReport(object) {
+  const rooms = crmData.rooms;
+  const checks = crmData.checks;
+  const maxRoom = Math.max(...rooms.map((room) => room.total), 1);
+  const reportDate = new Date().toLocaleDateString("ru-RU");
+  const roomsHtml = rooms
+    .map((room) => {
+      const width = Math.max(8, Math.round((room.total / maxRoom) * 100));
+      const metrics = Object.entries(roomCardMetrics(room))
+        .map(([label, value]) => `<span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>`)
+        .join("");
+      return `<article class="room-card">
+        <h3>${escapeHtml(room.name)}</h3>
+        <strong>${formatRub.format(room.total)}</strong>
+        <div class="room-metrics">${metrics}</div>
+        <small>${room.works.length} позиций</small>
+        <div class="bar"><div style="width:${width}%"></div></div>
+      </article>`;
+    })
+    .join("");
+  const worksHtml = rooms
+    .map((room) => {
+      const stages = ["Черновые работы", "Чистовые работы"]
+        .map((stage) => {
+          const stageWorks = room.works.filter((work) => (work[5] || detectStage(work[0])) === stage);
+          if (!stageWorks.length) return "";
+          return `<section class="stage">
+            <h4>${stage}</h4>
+            <div class="work-row work-head"><span>Работа</span><span>Цена</span><span>Кол-во</span><span>Площадь/м</span><span>Итого</span></div>
+            ${stageWorks
+              .map(
+                (work) => `<div class="work-row">
+                  <span>${escapeHtml(work[0])}</span>
+                  <span>${formatRub.format(work[1])}</span>
+                  <span>${escapeHtml(work[2])}</span>
+                  <span>${escapeHtml(work[3])}</span>
+                  <strong>${formatRub.format(work[4])}</strong>
+                </div>`,
+              )
+              .join("")}
+          </section>`;
+        })
+        .join("");
+      return `<article class="work-room"><h3>${escapeHtml(room.name)}<span>${formatRub.format(room.total)}</span></h3>${stages}</article>`;
+    })
+    .join("");
+  const checksHtml = checks.map((check) => `<div class="check-row"><span>${escapeHtml(check[0])}</span><strong>${formatRub.format(check[1])}</strong></div>`).join("");
+
+  return `<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Отчет клиента — ${escapeHtml(object.address)}</title>
+    <style>${standaloneReportStyles()}</style>
+  </head>
+  <body>
+    <main class="client-report">
+      <header class="report-hero">
+        <div>
+          <p class="eyebrow">Шмидт · клиентский отчет</p>
+          <h1>${escapeHtml(object.address)}</h1>
+          <p>${escapeHtml(object.task)} · ${escapeHtml(object.name)} · сформировано ${reportDate}</p>
+        </div>
+      </header>
+      <section class="summary-grid">
+        <article><span>Работы</span><strong>${formatRub.format(laborTotal)}</strong></article>
+        <article><span>Материалы</span><strong>${formatRub.format(crmData.materials)}</strong></article>
+        <article><span>Оплачено</span><strong>${crmData.received ? formatRub.format(crmData.received) : "Не указано"}</strong></article>
+        <article class="attention"><span>Остаток</span><strong>${crmData.received ? formatRub.format(balance) : "—"}</strong></article>
+      </section>
+      <section class="report-section"><div class="section-head"><h2>Прогресс по помещениям</h2><span>${rooms.length} разделов</span></div><div class="rooms">${roomsHtml}</div></section>
+      <section class="report-section">
+        <div class="section-head"><h2>Как считается сумма</h2><span>пояснение для проверки</span></div>
+        <div class="formula-notes">
+          <article><h3>Работы</h3><p>Каждая позиция считается по правилу: цена за единицу умножается на количество и площадь или метраж. Итог помещения складывается из всех позиций этого помещения.</p></article>
+          <article><h3>Материалы</h3><p>Материалы считаются отдельно по чекам. В общую сумму материалов попадают все чеки, указанные в разделе “Материалы и чеки”.</p></article>
+          <article><h3>Остаток</h3><p>Остаток считается как оплаченная сумма минус работы, материалы и отдельные работы. Отрицательное значение означает, что расходы превышают полученную оплату.</p></article>
+        </div>
+      </section>
+      <section class="report-section"><div class="section-head"><h2>Выполненные работы</h2><span>по этапам</span></div><div class="works">${worksHtml}</div></section>
+      <section class="report-section"><div class="section-head"><h2>Материалы и чеки</h2><span>${checks.length} чеков</span></div><div class="checks">${checksHtml}</div></section>
+    </main>
+  </body>
+</html>`;
+}
+
+function downloadClientReport(object) {
+  const html = buildStandaloneClientReport(object);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = reportFileName(object);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function copyClientReportLink(object) {
+  const url = clientReportUrl(object);
+  await navigator.clipboard.writeText(url);
+  return url;
+}
+
+window.CrmReportActions = {
+  buildStandaloneClientReport,
+  clientReportUrl,
+  downloadClientReport,
+  reportFileName,
+};
+
 function mapUrl(address, provider) {
   const query = encodeURIComponent(cleanMapAddress(address));
   if (provider === "2gis") return `https://2gis.ru/search/${query}`;
@@ -825,6 +965,10 @@ function renderClientPanel() {
     : `<div class="finance-mini"><p>${estimateStatus === "unsupported" ? "Эта старая смета не поддерживается в CRM. Расчеты смотри в Google-таблице." : estimateStatus === "not-connected" ? "Смета есть, но расчет в CRM пока не подключен. Расчеты смотри в Google-таблице." : estimateStatus === "loading" ? "Смета загружается..." : estimateStatus === "error" ? `Смета не загрузилась. ${state.estimateMessage}` : object.estimateUrl ? "Смету можно открыть в Google-таблице." : "У объекта нет ссылки на смету."}</p></div>`;
   const estimate = object.estimateUrl ? `<a class="action-link primary" href="${object.estimateUrl}" target="_blank" rel="noreferrer">Открыть смету</a>` : "";
   const clientPage = object.linkedFinance ? `<a class="action-link" href="client.html?object=${object.id}" target="_blank" rel="noreferrer">Страница клиента</a>` : "";
+  const reportActions = object.linkedFinance
+    ? `<button class="action-button" data-download-client-report="${object.id}" type="button">Скачать отчет HTML</button>
+      <button class="action-button" data-copy-client-link="${object.id}" type="button">Копировать ссылку</button>`
+    : "";
   const openButton = !object.linkedFinance
     ? `<a class="action-link primary" href="${object.estimateUrl}" target="_blank" rel="noreferrer">Открыть смету Google</a>`
     : `<button class="action-button primary-action" data-open-object="${object.id}" type="button">Открыть объект</button>`;
@@ -858,6 +1002,7 @@ function renderClientPanel() {
     <div class="object-actions">
       ${estimate}
       ${clientPage}
+      ${reportActions}
     </div>`;
   initYandexObjectMap(object);
 }
@@ -1081,6 +1226,36 @@ els.objectsBoard.addEventListener("click", (event) => {
 });
 
 els.clientPanel.addEventListener("click", (event) => {
+  const downloadButton = event.target.closest("[data-download-client-report]");
+  if (downloadButton) {
+    const targetObject = crmData.objects.find((object) => object.id === downloadButton.dataset.downloadClientReport);
+    if (targetObject?.linkedFinance) {
+      downloadClientReport(targetObject);
+      downloadButton.textContent = "Файл сформирован";
+      window.setTimeout(() => {
+        downloadButton.textContent = "Скачать отчет HTML";
+      }, 1800);
+    }
+    return;
+  }
+
+  const copyButton = event.target.closest("[data-copy-client-link]");
+  if (copyButton) {
+    const targetObject = crmData.objects.find((object) => object.id === copyButton.dataset.copyClientLink);
+    if (!targetObject?.linkedFinance) return;
+    copyClientReportLink(targetObject)
+      .then(() => {
+        copyButton.textContent = "Ссылка скопирована";
+        window.setTimeout(() => {
+          copyButton.textContent = "Копировать ссылку";
+        }, 1800);
+      })
+      .catch(() => {
+        copyButton.textContent = clientReportUrl(targetObject);
+      });
+    return;
+  }
+
   const button = event.target.closest("[data-open-object]");
   if (!button) return;
   const targetObject = crmData.objects.find((object) => object.id === button.dataset.openObject);
