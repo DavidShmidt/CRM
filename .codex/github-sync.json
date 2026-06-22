@@ -13,5 +13,5 @@
     "client.js",
     "client.css"
   ],
-  "notes": "Use the GitHub connector to fetch current SHAs, update changed files, and commit to main. Local git is not available in this environment."
+  "notes": "Use the bundled Codex Git executable for local commits and push to origin/main. Use the GitHub connector for repository checks and file verification."
 }
