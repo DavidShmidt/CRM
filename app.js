@@ -257,6 +257,9 @@ const googleSources = {
   },
 };
 
+const yandexMapsApiKey = "4c9bfc5e-ebd7-4d6a-bb54-b04574d3f9f7";
+const yandexGeocoderApiKey = "4c9bfc5e-ebd7-4d6a-bb54-b04574d3f9f7";
+
 const formatRub = new Intl.NumberFormat("ru-RU", {
   style: "currency",
   currency: "RUB",
@@ -274,6 +277,12 @@ const state = {
   estimateLoadingFor: null,
   estimateErrorFor: null,
   estimateMessage: "",
+};
+
+const yandexMapState = {
+  promise: null,
+  lastKey: "",
+  map: null,
 };
 
 const els = {
@@ -443,6 +452,106 @@ function cleanMapAddress(address) {
     .replace(/,?\s*(кв\.?|квартира|подъезд|п\.?д\.?)\s*[^,]+/gi, "")
     .replace(/,\s*$/g, "")
     .trim()}`;
+}
+
+function mapLabel(address) {
+  return cleanMapAddress(address).replace(/^Омск,\s*/i, "");
+}
+
+function loadYandexMaps() {
+  if (window.ymaps) {
+    return new Promise((resolve) => window.ymaps.ready(() => resolve(window.ymaps)));
+  }
+  if (yandexMapState.promise) return yandexMapState.promise;
+  yandexMapState.promise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(yandexMapsApiKey)}&lang=ru_RU`;
+    script.async = true;
+    script.onload = () => window.ymaps.ready(() => resolve(window.ymaps));
+    script.onerror = () => reject(new Error("Яндекс.Карты не загрузились"));
+    document.head.appendChild(script);
+  });
+  return yandexMapState.promise;
+}
+
+function renderYandexWidgetFallback(container, object, reason = "") {
+  const debug = reason ? `<div class="map-debug">API: ${reason}</div>` : "";
+  container.innerHTML = `<iframe title="Карта объекта" src="${mapEmbedUrl(object.address)}" loading="lazy"></iframe>${debug}`;
+}
+
+async function geocodeYandexAddress(address) {
+  const url = `https://geocode-maps.yandex.ru/v1/?apikey=${encodeURIComponent(yandexGeocoderApiKey)}&format=json&geocode=${encodeURIComponent(address)}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Геокодер вернул ${response.status}`);
+  const data = await response.json();
+  const position = data.response?.GeoObjectCollection?.featureMember?.[0]?.GeoObject?.Point?.pos;
+  if (!position) throw new Error("Геокодер не нашел адрес");
+  const [longitude, latitude] = position.split(" ").map(Number);
+  return [latitude, longitude];
+}
+
+async function geocodeAddress(address, ymaps) {
+  try {
+    return await geocodeYandexAddress(address);
+  } catch (httpError) {
+    const result = await ymaps.geocode(address, { results: 1 });
+    const firstGeoObject = result.geoObjects.get(0);
+    if (!firstGeoObject) throw httpError;
+    return firstGeoObject.geometry.getCoordinates();
+  }
+}
+
+async function initYandexObjectMap(object) {
+  const container = document.querySelector("[data-yandex-map]");
+  if (!container || !object?.address) return;
+  const canvas = container.querySelector("[data-yandex-map-canvas]") || container;
+  const loader = container.querySelector("[data-yandex-map-loader]");
+  const address = cleanMapAddress(object.address);
+  const key = `${object.id}:${address}`;
+  yandexMapState.lastKey = key;
+  if (yandexMapState.map) {
+    yandexMapState.map.destroy();
+    yandexMapState.map = null;
+  }
+  canvas.innerHTML = "";
+  if (loader) loader.hidden = false;
+
+  try {
+    const ymaps = await loadYandexMaps();
+    if (yandexMapState.lastKey !== key || !document.body.contains(container)) return;
+    const coords = await geocodeAddress(address, ymaps);
+
+    canvas.innerHTML = "";
+    const map = new ymaps.Map(canvas, {
+      center: coords,
+      zoom: 16,
+      controls: ["zoomControl", "geolocationControl", "rulerControl"],
+    });
+    const placemark = new ymaps.Placemark(
+      coords,
+      {
+        balloonContent: address,
+        iconCaption: mapLabel(object.address),
+      },
+      {
+        preset: "islands#redHomeIcon",
+      },
+    );
+    map.geoObjects.add(placemark);
+    yandexMapState.map = map;
+    requestAnimationFrame(() => {
+      map.container.fitToViewport();
+      map.setCenter(coords, 16);
+      window.setTimeout(() => {
+        if (yandexMapState.lastKey === key && loader) loader.hidden = true;
+      }, 1400);
+    });
+  } catch (error) {
+    if (yandexMapState.lastKey === key && document.body.contains(container)) {
+      renderYandexWidgetFallback(container, object, error?.message || String(error));
+    }
+    console.warn("Yandex map failed", error);
+  }
 }
 
 function nextActionFor(object) {
@@ -732,10 +841,9 @@ function renderClientPanel() {
     </div>
     <div class="map-card">
       <div class="map-frame">
-        <iframe title="Карта объекта" src="${mapEmbedUrl(object.address)}" loading="lazy"></iframe>
-        <div class="map-marker" aria-hidden="true">
-          <span class="map-pin"></span>
-          <span class="map-label">${cleanMapAddress(object.address).replace(/^Омск,\s*/i, "")}</span>
+        <div class="yandex-map" data-yandex-map aria-label="Карта объекта">
+          <div class="map-canvas" data-yandex-map-canvas></div>
+          <div class="map-loader" data-yandex-map-loader>Загружаю карту...</div>
         </div>
       </div>
       <div class="object-actions">
@@ -748,6 +856,7 @@ function renderClientPanel() {
       ${estimate}
       ${clientPage}
     </div>`;
+  initYandexObjectMap(object);
 }
 
 function renderOverview() {
@@ -822,10 +931,13 @@ function renderRooms() {
     .join("");
 }
 
-function sumWorkQuantity(room, patterns) {
-  return room.works
-    .filter((work) => patterns.some((pattern) => pattern.test(work[0])))
-    .reduce((sum, work) => sum + (Number(work[2]) || 0), 0);
+function maxWorkQuantity(room, patterns) {
+  return Math.max(
+    0,
+    ...room.works
+      .filter((work) => patterns.some((pattern) => pattern.test(work[0])))
+      .map((work) => Number(work[2]) || 0),
+  );
 }
 
 function formatMetricNumber(value) {
@@ -835,13 +947,14 @@ function formatMetricNumber(value) {
 
 function roomCardMetrics(room) {
   const metrics = { ...room.metrics };
-  const socketCount = sumWorkQuantity(room, [/розет/i, /подрозет/i, /выключ/i]);
-  const chaseLength = sumWorkQuantity(room, [/штроб/i]);
-  const cableLength = sumWorkQuantity(room, [/кабел/i, /провод/i]);
+  const socketCount = maxWorkQuantity(room, [/розет/i, /подрозет/i, /выключ/i]);
+  const chaseLength = maxWorkQuantity(room, [/штроб/i]);
+  const cableLength = maxWorkQuantity(room, [/кабел/i, /провод/i]);
 
-  if (socketCount) metrics["Точки"] = formatMetricNumber(socketCount);
+  if (socketCount) metrics["Точек"] = formatMetricNumber(socketCount);
   if (chaseLength) metrics["Штробы"] = `${formatMetricNumber(chaseLength)} м`;
   if (cableLength) metrics["Кабель"] = `${formatMetricNumber(cableLength)} м`;
+  if ((socketCount || chaseLength || cableLength) && !metrics["Раздел"]) metrics["Раздел"] = "Инженерия";
 
   return metrics;
 }
