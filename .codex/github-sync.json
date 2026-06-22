@@ -1,0 +1,17 @@
+{
+  "repository": "DavidShmidt/CRM",
+  "remote": "origin",
+  "url": "https://github.com/DavidShmidt/CRM.git",
+  "branch": "main",
+  "syncMethod": "github_app",
+  "trackedFiles": [
+    ".gitattributes",
+    "index.html",
+    "app.js",
+    "styles.css",
+    "client.html",
+    "client.js",
+    "client.css"
+  ],
+  "notes": "Use the GitHub connector to fetch current SHAs, update changed files, and commit to main. Local git is not available in this environment."
+}
