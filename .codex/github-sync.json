@@ -6,7 +6,9 @@
   "syncMethod": "github_app",
   "trackedFiles": [
     ".gitattributes",
+    "README.md",
     "index.html",
+    "crm-google.js",
     "app.js",
     "styles.css",
     "client.html",

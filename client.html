@@ -11,8 +11,8 @@
       <header class="report-hero">
         <div>
           <p class="eyebrow">Шмидт · клиентский отчет</p>
-          <h1>Волховстроя, 20, кв. 74</h1>
-          <p>Квартира · Евгений Владимирович · обновлено 27.05.2026</p>
+          <h1 id="reportTitle">Волховстроя, 20, кв. 74</h1>
+          <p id="reportMeta">Квартира · Евгений Владимирович · обновляю данные...</p>
         </div>
         <button class="print-button" type="button" onclick="window.print()">PDF / печать</button>
       </header>
@@ -20,26 +20,26 @@
       <section class="summary-grid">
         <article>
           <span>Работы</span>
-          <strong>205 358 ₽</strong>
+          <strong id="summaryLabor">—</strong>
         </article>
         <article>
           <span>Материалы</span>
-          <strong>48 886 ₽</strong>
+          <strong id="summaryMaterials">—</strong>
         </article>
         <article>
           <span>Оплачено</span>
-          <strong>250 000 ₽</strong>
+          <strong id="summaryReceived">—</strong>
         </article>
         <article class="attention">
           <span>Остаток</span>
-          <strong>-17 244 ₽</strong>
+          <strong id="summaryBalance">—</strong>
         </article>
       </section>
 
       <section class="report-section">
         <div class="section-head">
           <h2>Прогресс по помещениям</h2>
-          <span>5 разделов</span>
+          <span id="roomsCount">—</span>
         </div>
         <div class="rooms" id="rooms"></div>
       </section>
@@ -76,12 +76,13 @@
       <section class="report-section">
         <div class="section-head">
           <h2>Материалы и чеки</h2>
-          <span>22 чека</span>
+          <span id="checksCount">—</span>
         </div>
         <div class="checks" id="checks"></div>
       </section>
     </main>
 
-    <script src="client.js"></script>
+    <script src="crm-google.js?v=2"></script>
+    <script src="client.js?v=2"></script>
   </body>
 </html>

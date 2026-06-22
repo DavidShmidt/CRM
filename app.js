@@ -3,6 +3,7 @@ const crmData = {
   received: 250000,
   materials: 48886,
   separateWorks: 13000,
+  laborTotal: 0,
   objects: [
     {
       id: "obj-001",
@@ -321,7 +322,7 @@ let totalCost = 0;
 let balance = 0;
 
 function recalcTotals() {
-  laborTotal = crmData.rooms.reduce((sum, room) => sum + room.total, 0);
+  laborTotal = crmData.laborTotal || crmData.rooms.reduce((sum, room) => sum + room.total, 0);
   totalCost = laborTotal + crmData.materials + crmData.separateWorks;
   balance = crmData.received - totalCost;
 }
@@ -646,11 +647,13 @@ function parseObjectsSheet(rows) {
 }
 
 function parseSummarySheet(rows) {
+  crmData.laborTotal = 0;
   crmData.materials = 0;
   crmData.received = 0;
   crmData.separateWorks = 0;
   rows.forEach((row) => {
     const key = String(row[0] || "").trim().toLowerCase();
+    if (key === "общий итог") crmData.laborTotal = parseMoney(row[1]);
     if (key === "материалы") crmData.materials = parseMoney(row[1]);
     if (key === "полученно" || key === "получено") crmData.received = parseMoney(row[1]);
     if (key === "отдельные работы") crmData.separateWorks = parseMoney(row[1]);
